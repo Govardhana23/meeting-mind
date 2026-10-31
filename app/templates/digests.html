@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Digests — Meeting Mind{% endblock %}
+{% block header_title %}Weekly Individual Intelligence Digests{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+
+  <!-- Header Card -->
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h3 class="text-base font-bold text-slate-900">Personalized Weekly Meeting Digests</h3>
+      <p class="text-xs text-slate-500 mt-1">
+        Compiles all decisions, assigned action items, approaching deadlines, and cross-meeting conflicts relevant to each individual person across the entire week.
+      </p>
+    </div>
+
+    <button 
+      onclick="sendAllDigests()"
+      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2"
+    >
+      <i class="fa-solid fa-paper-plane text-xs"></i>
+      <span>Generate & Dispatch All Digests</span>
+    </button>
+  </div>
+
+  <!-- Preview Selector Card -->
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex-1 max-w-md">
+        <label for="member-select" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Select Team Member to Preview</label>
+        <select 
+          id="member-select" 
+          class="w-full px-3.5 py-2 text-xs font-semibold text-slate-800 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          {% if members %}
+            {% for m in members %}
+            <option value="{{ m.id }}">{{ m.name }} ({{ m.email }})</option>
+            {% endfor %}
+          {% else %}
+            <option value="">No team members available</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <button 
+        onclick="loadDigestPreview()"
+        class="self-end px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-2"
+      >
+        <i class="fa-solid fa-eye text-xs"></i>
+        <span>Load Preview</span>
+      </button>
+    </div>
+
+    <!-- Preview Output Container -->
+    <div id="digest-preview-container" class="hidden pt-6 border-t border-slate-100 space-y-6">
+      <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Weekly Digest Preview</span>
+            <h4 id="preview-member-name" class="text-base font-bold text-slate-900 mt-0.5"></h4>
+            <p id="preview-member-email" class="text-xs text-slate-500 font-mono"></p>
+          </div>
+          <span id="preview-week" class="px-3 py-1 rounded bg-white border border-slate-200 text-xs font-semibold text-slate-700"></span>
+        </div>
+
+        <!-- Generated Executive Summary -->
+        <div>
+          <h5 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Executive Overview</h5>
+          <div id="preview-summary" class="bg-white p-4 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed shadow-sm"></div>
+        </div>
+
+        <!-- Action Items Count -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-2">
+            <h6 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-indigo-500"></i>
+              <span>Assigned Action Items</span>
+            </h6>
+            <ul id="preview-actions-list" class="text-xs text-slate-600 divide-y divide-slate-100"></ul>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-2">
+            <h6 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-gavel text-purple-500"></i>
+              <span>Decisions Involved</span>
+            </h6>
+            <ul id="preview-decisions-list" class="text-xs text-slate-600 divide-y divide-slate-100"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Digest History Table -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-3">
+    <div class="p-5 border-b border-slate-200">
+      <h4 class="text-sm font-bold text-slate-800">Digest Generation History</h4>
+    </div>
+    {% if history %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-600">
+        <thead class="bg-slate-50 text-xs uppercase text-slate-400 border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3 font-semibold">Recipient</th>
+            <th class="px-6 py-3 font-semibold">Week Start</th>
+            <th class="px-6 py-3 font-semibold">Sent At</th>
+            <th class="px-6 py-3 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-xs font-medium">
+          {% for h in history %}
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-6 py-3.5 text-slate-900 font-bold">
+              {{ h.member_name }} <span class="font-normal text-slate-400">({{ h.member_email }})</span>
+            </td>
+            <td class="px-6 py-3.5 text-slate-600">{{ h.week_start }}</td>
+            <td class="px-6 py-3.5 text-slate-500">{{ h.sent_at }}</td>
+            <td class="px-6 py-3.5">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Generated
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-400 text-xs">No digest history recorded yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Check if member_id is in query string
+  const urlParams = new URLSearchParams(window.location.search);
+  const qMemberId = urlParams.get('member_id');
+  if (qMemberId) {
+    const sel = document.getElementById('member-select');
+    if (sel) {
+      sel.value = qMemberId;
+      setTimeout(loadDigestPreview, 300);
+    }
+  }
+
+  async function loadDigestPreview() {
+    const memberId = document.getElementById('member-select').value;
+    if (!memberId) {
+      showToast('Select a team member first', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/dashboard/digest/preview/${memberId}`);
+      if (!response.ok) throw new Error('Failed to load digest preview');
+      const data = await response.json();
+
+      document.getElementById('digest-preview-container').classList.remove('hidden');
+      document.getElementById('preview-member-name').innerText = data.member_name;
+      document.getElementById('preview-member-email').innerText = data.member_email;
+      document.getElementById('preview-week').innerText = `Week of ${data.week_start}`;
+      document.getElementById('preview-summary').innerHTML = data.summary_html || data.summary || "No weekly activity recorded.";
+
+      // Actions
+      const actionsList = document.getElementById('preview-actions-list');
+      actionsList.innerHTML = '';
+      if (data.action_items && data.action_items.length) {
+        data.action_items.forEach(a => {
+          const li = document.createElement('li');
+          li.className = 'py-2 flex items-center justify-between';
+          li.innerHTML = `<span>${a.description || a}</span><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-100 text-slate-600">${a.status || 'pending'}</span>`;
+          actionsList.appendChild(li);
+        });
+      } else {
+        actionsList.innerHTML = '<li class="py-2 text-slate-400 italic">No action items this week.</li>';
+      }
+
+      // Decisions
+      const decList = document.getElementById('preview-decisions-list');
+      decList.innerHTML = '';
+      if (data.decisions && data.decisions.length) {
+        data.decisions.forEach(d => {
+          const li = document.createElement('li');
+          li.className = 'py-2';
+          li.innerHTML = `<span>${d.text || d}</span>`;
+          decList.appendChild(li);
+        });
+      } else {
+        decList.innerHTML = '<li class="py-2 text-slate-400 italic">No decisions involved this week.</li>';
+      }
+
+      showToast(`Loaded digest preview for ${data.member_name}`, 'info');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function sendAllDigests() {
+    try {
+      const response = await fetch('/api/dashboard/digest/send', {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to send digests');
+      const res = await response.json();
+      showToast(`Generated & processed ${res.count || res.digests_sent || 0} digests!`, 'success');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+</script>
+{% endblock %}

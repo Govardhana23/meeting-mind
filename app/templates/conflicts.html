@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Cross-Meeting Conflicts & Memory — Meeting Mind{% endblock %}
+{% block header_title %}Cross-Meeting Decision Governance & Conflict Resolution{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <!-- Explanatory Header -->
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold">
+        <i class="fa-solid fa-code-compare"></i>
+      </span>
+      <h3 class="text-base font-bold text-slate-900">Decision Memory & Contradiction Detection</h3>
+    </div>
+    <p class="text-xs text-slate-500 leading-relaxed">
+      Unlike basic transcript summarizers, Meeting Mind remembers every decision across all past meetings. When a new meeting makes a contradictory decision, the system detects the clash, alerts the team, and allows you to formally resolve which decision should be active or superseded in corporate memory.
+    </p>
+  </div>
+
+  <!-- Conflicts List -->
+  <div class="space-y-6">
+    {% if conflicts %}
+      {% for c in conflicts %}
+      <div id="conflict-card-{{ c.id }}" class="bg-white rounded-xl border {% if c.status == 'unresolved' %}border-rose-200 shadow-sm{% else %}border-slate-200 opacity-80{% endif %} overflow-hidden">
+        
+        <!-- Conflict Header -->
+        <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 {% if c.status == 'unresolved' %}bg-rose-50/20{% else %}bg-slate-50{% endif %}">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider {% if c.severity == 'high' %}bg-rose-100 text-rose-800{% elif c.severity == 'medium' %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+              {{ c.severity }} severity
+            </span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full {% if c.status == 'unresolved' %}bg-rose-100 text-rose-700{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+              {{ c.status }}
+            </span>
+            <span class="text-xs text-slate-400 font-mono">#{{ c.id[:8] }}</span>
+          </div>
+
+          <div class="text-xs text-slate-400">
+            Detected: {{ c.created_at.strftime('%b %d, %Y') if c.created_at else '-' }}
+          </div>
+        </div>
+
+        <!-- Conflict Body -->
+        <div class="p-6 space-y-5">
+          <!-- Explanation -->
+          <div>
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Reason for Contradiction:</h4>
+            <div class="text-xs font-medium text-rose-900 bg-rose-50/80 p-3.5 rounded-lg border border-rose-200">
+              {{ c.explanation }}
+            </div>
+          </div>
+
+          <!-- Side by Side Decision Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- New Decision -->
+            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">New Meeting Decision</span>
+                <span class="text-[11px] font-medium text-slate-500">{{ c.new_meeting_title }}</span>
+              </div>
+              <p class="text-xs font-bold text-slate-900 leading-snug">{{ c.new_decision_text }}</p>
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-emerald-100">
+                Decided by: <strong class="text-slate-700">{{ c.new_decided_by or 'Team' }}</strong>
+              </div>
+            </div>
+
+            <!-- Old Decision -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase text-slate-600 bg-slate-200 px-2 py-0.5 rounded">Past Decision In Memory</span>
+                <span class="text-[11px] font-medium text-slate-500">{{ c.old_meeting_title }}</span>
+              </div>
+              <p class="text-xs font-bold text-slate-900 leading-snug">{{ c.old_decision_text }}</p>
+              <div class="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+                Decided by: <strong class="text-slate-700">{{ c.old_decided_by or 'Team' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resolution Section -->
+          {% if c.status == 'unresolved' %}
+          <div class="pt-4 border-t border-slate-100 space-y-3">
+            <h5 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Resolution in Corporate Memory:</h5>
+            
+            <div class="space-y-3">
+              <textarea 
+                id="res-note-{{ c.id }}"
+                rows="2"
+                placeholder="Reason or reconciliation note (e.g., 'Superseded previous strategy in favor of Q4 architecture direction')."
+                class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              ></textarea>
+
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-4 text-xs font-medium text-slate-700">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="keep-{{ c.id }}" value="new" checked class="text-indigo-600 focus:ring-indigo-500">
+                    <span>Adopt New (Supersede Old)</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="keep-{{ c.id }}" value="old" class="text-indigo-600 focus:ring-indigo-500">
+                    <span>Keep Old (Discard New)</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="keep-{{ c.id }}" value="both" class="text-indigo-600 focus:ring-indigo-500">
+                    <span>Keep Both</span>
+                  </label>
+                </div>
+
+                <button 
+                  onclick="resolveConflict('{{ c.id }}')"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+                >
+                  Save Resolution to Memory
+                </button>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="pt-2 border-t border-slate-100 text-xs text-slate-600">
+            <span class="font-bold text-emerald-700"><i class="fa-solid fa-check-circle mr-1"></i> Resolved:</span> {{ c.resolution or 'Resolution recorded.' }}
+          </div>
+          {% endif %}
+
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="bg-white p-16 rounded-xl border border-slate-200 text-center space-y-3 shadow-sm">
+        <i class="fa-solid fa-circle-check text-emerald-500 text-3xl"></i>
+        <h4 class="text-base font-bold text-slate-800">Memory is Free of Contradictions</h4>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          No conflicting decisions detected between past and present meetings.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function resolveConflict(conflictId) {
+    const noteEl = document.getElementById(`res-note-${conflictId}`);
+    const keepOption = document.querySelector(`input[name="keep-${conflictId}"]:checked`).value;
+    const note = noteEl ? noteEl.value.trim() : "";
+
+    try {
+      const response = await fetch(`/api/dashboard/conflicts/${conflictId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resolution: note || `Resolved by policy: keep ${keepOption} decision.`,
+          keep_decision: keepOption
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to resolve conflict');
+
+      showToast('Conflict resolved in corporate memory!', 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Meeting Mind — Cross-Meeting Intelligence{% endblock %}</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .fade-out { transition: opacity 0.4s ease, transform 0.4s ease; opacity: 0; transform: translateY(-10px); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800">
+    <!-- Brand Header -->
+    <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/80 bg-slate-950/40">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 text-lg">
+        🧠
+      </div>
+      <div>
+        <h1 class="text-white font-bold text-base tracking-tight leading-none">Meeting Mind</h1>
+        <p class="text-[11px] text-slate-400 font-medium mt-1">Cross-Meeting Memory</p>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <i class="fa-solid fa-gauge-high w-4 text-center"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="/upload" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/upload' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <i class="fa-solid fa-cloud-arrow-up w-4 text-center"></i>
+        <span>Upload Transcript</span>
+      </a>
+
+      <a href="/confirmations" class="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/confirmations' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-shield-halved w-4 text-center"></i>
+          <span>Confirmations</span>
+        </div>
+        <span id="sidebar-pending-badge" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          Queue
+        </span>
+      </a>
+
+      <a href="/conflicts" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/conflicts' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <i class="fa-solid fa-triangle-exclamation w-4 text-center text-amber-400"></i>
+        <span>Conflicts & Memory</span>
+      </a>
+
+      <a href="/team" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/team' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <i class="fa-solid fa-users w-4 text-center"></i>
+        <span>Team Members</span>
+      </a>
+
+      <a href="/digests" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white {% if request.url.path == '/digests' %}bg-indigo-600 text-white shadow-sm{% endif %}">
+        <i class="fa-solid fa-envelope-open-text w-4 text-center"></i>
+        <span>Weekly Digests</span>
+      </a>
+    </nav>
+
+    <!-- System Status Footer -->
+    <div class="p-4 border-t border-slate-800/80 bg-slate-950/20 text-xs text-slate-400 space-y-1.5">
+      <div class="flex items-center justify-between">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Engine Active
+        </span>
+        <span class="text-slate-500 font-mono">v1.0.0</span>
+      </div>
+      <p class="text-[11px] text-slate-500">Cross-meeting memory enabled</p>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <!-- Top Bar -->
+    <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between flex-shrink-0 shadow-sm z-10">
+      <div>
+        <h2 class="text-lg font-semibold text-slate-800">{% block header_title %}Overview{% endblock %}</h2>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="/upload" class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>New Meeting</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Scrollable Workspace -->
+    <div class="flex-1 overflow-y-auto p-8">
+      <!-- Flash / Toast Container -->
+      <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script>
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        warning: 'bg-amber-500 text-white',
+        info: 'bg-indigo-600 text-white'
+      };
+      toast.className = `px-4 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info');
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

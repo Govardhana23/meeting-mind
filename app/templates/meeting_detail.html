@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meeting.title }} — Meeting Mind{% endblock %}
+{% block header_title %}Meeting Detail{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+  <!-- Header Card -->
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h2 class="text-xl font-bold text-slate-900">{{ meeting.title }}</h2>
+        {% if meeting.status == 'processed' %}
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Processed</span>
+        {% elif meeting.status == 'processing' %}
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">Processing...</span>
+        {% else %}
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">{{ meeting.status }}</span>
+        {% endif %}
+      </div>
+      <p class="text-xs text-slate-500 mt-1 flex items-center gap-3">
+        <span><i class="fa-regular fa-calendar mr-1"></i>{{ meeting.meeting_date.strftime('%B %d, %Y') if meeting.meeting_date else '-' }}</span>
+        <span>&bull;</span>
+        <span><i class="fa-solid fa-file-code mr-1"></i>Format: <strong class="uppercase">{{ meeting.format }}</strong></span>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="/confirmations" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Review in Confirmation Queue</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="flex border-b border-slate-200 space-x-6 text-sm font-semibold">
+    <button onclick="switchTab('transcript')" id="tab-btn-transcript" class="pb-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2">
+      <i class="fa-solid fa-comments"></i>
+      <span>Speaker Transcript ({{ utterances|length }})</span>
+    </button>
+    <button onclick="switchTab('decisions')" id="tab-btn-decisions" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+      <i class="fa-solid fa-gavel"></i>
+      <span>Decisions ({{ decisions|length }})</span>
+    </button>
+    <button onclick="switchTab('actions')" id="tab-btn-actions" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+      <i class="fa-solid fa-list-check"></i>
+      <span>Action Items ({{ action_items|length }})</span>
+    </button>
+    <button onclick="switchTab('conflicts')" id="tab-btn-conflicts" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+      <span>Conflicts Detected ({{ conflicts|length }})</span>
+    </button>
+  </div>
+
+  <!-- TAB 1: Speaker Attributed Transcript -->
+  <div id="tab-content-transcript" class="space-y-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+      {% if utterances %}
+        {% for u in utterances %}
+        <div class="flex gap-4 p-3 rounded-lg hover:bg-slate-50 transition border border-transparent hover:border-slate-100">
+          <!-- Speaker Avatar / Badge -->
+          <div class="flex-shrink-0">
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs uppercase shadow-sm">
+              {{ u.speaker[:2] }}
+            </span>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-xs text-slate-900">{{ u.speaker }}</span>
+              {% if u.start_time is not none %}
+              <span class="text-[11px] font-mono text-slate-400">
+                {{ "%02d:%02d"|format((u.start_time // 60)|int, (u.start_time % 60)|int) }}
+              </span>
+              {% endif %}
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed">{{ u.text }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="p-8 text-center text-slate-400 text-xs">No parsed utterances found for this meeting.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB 2: Decisions -->
+  <div id="tab-content-decisions" class="space-y-4 hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% if decisions %}
+        {% for d in decisions %}
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+              {{ d.topic or 'General' }}
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-medium {% if d.status == 'active' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ d.status }}
+            </span>
+          </div>
+
+          <p class="text-sm font-semibold text-slate-900 leading-snug">{{ d.text }}</p>
+
+          {% if d.context %}
+          <p class="text-xs text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-100">
+            {{ d.context }}
+          </p>
+          {% endif %}
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Decided by: <strong class="text-slate-700">{{ d.decided_by or 'Consensus' }}</strong></span>
+            <span>ID: <code class="text-[10px]">{{ d.id[:8] }}</code></span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="col-span-2 bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-xs">
+          No decisions extracted for this meeting.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB 3: Action Items -->
+  <div id="tab-content-actions" class="space-y-4 hidden">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {% if action_items %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-xs uppercase text-slate-400 border-b border-slate-200">
+            <tr>
+              <th class="px-5 py-3 font-semibold">Task Description</th>
+              <th class="px-5 py-3 font-semibold">Owner</th>
+              <th class="px-5 py-3 font-semibold">Deadline</th>
+              <th class="px-5 py-3 font-semibold">Priority</th>
+              <th class="px-5 py-3 font-semibold">Status</th>
+              <th class="px-5 py-3 font-semibold text-right">Tracker</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-xs font-medium">
+            {% for a in action_items %}
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-5 py-3.5 text-slate-900 font-semibold max-w-md">
+                {{ a.description }}
+              </td>
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold">
+                  <i class="fa-solid fa-user text-[10px] text-slate-400"></i>
+                  {{ a.owner_name }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-slate-600">
+                {% if a.deadline %}
+                  <span class="font-mono text-slate-700">{{ a.deadline.strftime('%Y-%m-%d') }}</span>
+                {% else %}
+                  <span class="text-slate-400 italic">No deadline</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-3.5">
+                {% if a.priority == 'critical' %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-100 text-rose-800">Critical</span>
+                {% elif a.priority == 'high' %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800">High</span>
+                {% elif a.priority == 'low' %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">Low</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-800">Medium</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-3.5">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase {% if a.status == 'confirmed' %}bg-emerald-100 text-emerald-800{% elif a.status == 'pending' %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-600{% endif %}">
+                  {{ a.status }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-right">
+                {% if a.tracker_card_url %}
+                <a href="{{ a.tracker_card_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1">
+                  <span>Card</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+                {% else %}
+                <span class="text-slate-400 italic text-[11px]">Pending Review</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-8 text-center text-slate-400 text-xs">No action items found.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB 4: Conflicts Detected -->
+  <div id="tab-content-conflicts" class="space-y-4 hidden">
+    {% if conflicts %}
+      <div class="space-y-4">
+        {% for c in conflicts %}
+        <div class="bg-white p-6 rounded-xl border border-rose-200 bg-rose-50/10 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider {% if c.severity == 'high' %}bg-rose-100 text-rose-800 border border-rose-200{% elif c.severity == 'medium' %}bg-amber-100 text-amber-800 border border-amber-200{% else %}bg-blue-100 text-blue-800{% endif %}">
+              {{ c.severity }} Conflict
+            </span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {{ c.status }}
+            </span>
+          </div>
+
+          <div>
+            <h4 class="text-sm font-bold text-slate-900 mb-1">Cross-Meeting Contradiction Explanation:</h4>
+            <p class="text-xs text-rose-900 bg-rose-50 p-3 rounded-lg border border-rose-200 font-medium">
+              {{ c.explanation }}
+            </p>
+          </div>
+
+          <!-- Side by Side Decision Comparison -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-lg bg-emerald-50/40 border border-emerald-200 space-y-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">This Meeting's New Decision</span>
+              <p class="text-xs font-semibold text-slate-900">{{ c.new_decision_text }}</p>
+              <div class="text-[11px] text-slate-500 pt-1">Decided by: {{ c.new_decided_by or 'Team' }}</div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Conflicting Past Decision in Memory</span>
+              <p class="text-xs font-semibold text-slate-900">{{ c.old_decision_text }}</p>
+              <div class="text-[11px] text-slate-500 pt-1">Decided by: {{ c.old_decided_by or 'Team' }}</div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <a href="/conflicts" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+              Resolve Decision in Memory &rarr;
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+    <div class="bg-white p-10 rounded-xl border border-slate-200 text-center space-y-2 shadow-sm">
+      <i class="fa-solid fa-circle-check text-emerald-500 text-3xl"></i>
+      <h4 class="text-sm font-bold text-slate-800">No Conflicts Detected</h4>
+      <p class="text-xs text-slate-500">All decisions made in this meeting are fully consistent with past historical decisions in cross-meeting memory.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchTab(name) {
+    const tabs = ['transcript', 'decisions', 'actions', 'conflicts'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`tab-btn-${t}`);
+      const content = document.getElementById(`tab-content-${t}`);
+      if (t === name) {
+        btn.classList.add('border-indigo-600', 'text-indigo-600');
+        btn.classList.remove('border-transparent', 'text-slate-500');
+        content.classList.remove('hidden');
+      } else {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600');
+        btn.classList.add('border-transparent', 'text-slate-500');
+        content.classList.add('hidden');
+      }
+    });
+  }
+</script>
+{% endblock %}

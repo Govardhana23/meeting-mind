@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Team Members — Meeting Mind{% endblock %}
+{% block header_title %}Team Members & Ownership Mapping{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+
+  <!-- Header Card -->
+  <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h3 class="text-base font-bold text-slate-900">Registered Team Members</h3>
+      <p class="text-xs text-slate-500 mt-1">
+        Team members receive weekly digests, deadline reminders, and task ownership assignments when mentioned in meeting transcripts.
+      </p>
+    </div>
+    
+    <button 
+      onclick="document.getElementById('add-member-modal').classList.remove('hidden')"
+      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2"
+    >
+      <i class="fa-solid fa-user-plus text-xs"></i>
+      <span>Add Team Member</span>
+    </button>
+  </div>
+
+  <!-- Members Table -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    {% if members %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-600">
+        <thead class="bg-slate-50 text-xs uppercase text-slate-400 border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3.5 font-semibold">Name</th>
+            <th class="px-6 py-3.5 font-semibold">Email</th>
+            <th class="px-6 py-3.5 font-semibold">Transcript Aliases</th>
+            <th class="px-6 py-3.5 font-semibold">Assigned Tasks</th>
+            <th class="px-6 py-3.5 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-xs font-medium">
+          {% for m in members %}
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-6 py-4 text-slate-900 font-bold flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase border border-indigo-200">
+                {{ m.name[:2] }}
+              </span>
+              <span>{{ m.name }}</span>
+            </td>
+            <td class="px-6 py-4 text-slate-600">
+              <span class="font-mono text-slate-700">{{ m.email }}</span>
+            </td>
+            <td class="px-6 py-4 text-slate-500">
+              {% if m.aliases %}
+                {% for a in m.aliases.split(',') %}
+                <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] mr-1">
+                  {{ a.strip() }}
+                </span>
+                {% endfor %}
+              {% else %}
+                <span class="text-slate-400 italic">None</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold {% if m.action_items_count > 0 %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-slate-100 text-slate-500{% endif %}">
+                {{ m.action_items_count }} tasks
+              </span>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <a href="/digests?member_id={{ m.id }}" class="text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1">
+                <span>View Digest</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-12 text-center space-y-3">
+      <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center text-xl">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <p class="text-xs font-medium text-slate-600">No team members added yet.</p>
+      <button 
+        onclick="document.getElementById('add-member-modal').classList.remove('hidden')"
+        class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-indigo-700 transition"
+      >
+        Add Member
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="add-member-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h4 class="text-sm font-bold text-slate-900">Add Team Member</h4>
+        <button onclick="document.getElementById('add-member-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="add-member-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+          <input type="text" id="member-name" required placeholder="e.g. Alice Johnson" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+          <input type="email" id="member-email" required placeholder="alice@company.com" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Aliases (comma separated)</label>
+          <input type="text" id="member-aliases" placeholder="e.g. Alice, AJ, Alice J" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          <span class="text-[11px] text-slate-400">Used by transcript parser to attribute spoken turns</span>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="document.getElementById('add-member-modal').classList.add('hidden')" class="px-3 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('add-member-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('member-name').value.trim();
+    const email = document.getElementById('member-email').value.trim();
+    const aliases = document.getElementById('member-aliases').value.trim();
+
+    try {
+      const response = await fetch('/api/dashboard/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, aliases })
+      });
+
+      if (!response.ok) throw new Error('Failed to create team member');
+
+      showToast('Team member added successfully', 'success');
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+</script>
+{% endblock %}
